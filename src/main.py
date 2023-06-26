@@ -16,6 +16,7 @@ BLOCK_NAME_SCROLE = '_3fIsQ45s'
 PAGE_NUMBER_NAME = 'CaZoSunN'
 TITLE_NAME = '_3JY3BA25 _2LImwTb0'
 FILE_PASS = "C:\\Projects_Learn\\Parce_Flowers\\Dataset"
+FILE_PASS_PIC = "C:\\Projects_Learn\\Parce_Flowers\\DatasetPic"
 
 def find_max_pages(driver, link):
     driver.get(url = link)
@@ -28,12 +29,22 @@ def find_max_pages(driver, link):
 
 def create_directory(source):
     for name, link in source.items():
+        name = name.replace('"', '')
+        name = name.replace(':', '')
         os.mkdir(FILE_PASS+"\\"+name)
         p = requests.get(link)
         out = open(FILE_PASS+"\\"+name+'\\img.jpg', "wb")
         out.write(p.content)
         out.close() 
 
+def collect_pic(source):
+    i = 1
+    for link in source.values():
+        p = requests.get(link)
+        out = open(FILE_PASS_PIC+f'\\img{i}.jpg', "wb")
+        out.write(p.content)
+        out.close()
+        i += 1
 
 def main():
     source = dict()
@@ -45,7 +56,7 @@ def main():
     driver = webdriver.Chrome(service=service)
     try:
         page_number = find_max_pages(driver, link)
-        for number in range(1, page_number):
+        for number in range(1, 5):
             link = LINK_FORM + PAGE_FORM + str(number)
             driver.get(url = link)
             search_boxes = driver.find_elements(By.CLASS_NAME, BLOCK_NAME_SCROLE)
@@ -60,14 +71,13 @@ def main():
                 titles.append(block.find('span', class_ = TITLE_NAME).text)
                 source_urls.append(block.find('div', class_ = BLOCK_NAME).img['src'])
         source = dict(zip(titles, source_urls))
-        create_directory(source)
+        collect_pic(source)
+        # create_directory(source)
     except Exception as ex:
         print(ex)
     finally:
         driver.close()
         driver.quit
-
-    # images_link = list(map(lambda block: block.img['src'], blocks))
 
 
 
