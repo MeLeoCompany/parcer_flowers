@@ -56,7 +56,7 @@ def main():
     driver = webdriver.Chrome(service=service)
     try:
         page_number = find_max_pages(driver, link)
-        for number in range(1, 5):
+        for number in range(1, page_number):
             link = LINK_FORM + PAGE_FORM + str(number)
             driver.get(url = link)
             search_boxes = driver.find_elements(By.CLASS_NAME, BLOCK_NAME_SCROLE)
@@ -70,12 +70,12 @@ def main():
             for block in blocks:
                 titles.append(block.find('span', class_ = TITLE_NAME).text)
                 source_urls.append(block.find('div', class_ = BLOCK_NAME).img['src'])
-        source = dict(zip(titles, source_urls))
-        collect_pic(source)
         # create_directory(source)
     except Exception as ex:
         print(ex)
     finally:
+        source = dict(zip(titles, source_urls))
+        collect_pic(source)
         driver.close()
         driver.quit
 
