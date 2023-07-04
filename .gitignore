@@ -3,3 +3,9 @@ chromedriver
 .vscode
 Dataset
 DatasetPic
+*.rar
+*.zip
+*.jpg
+*.h5
+*.pth
+__pycache__
