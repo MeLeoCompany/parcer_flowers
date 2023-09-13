@@ -9,3 +9,4 @@ TITLE_NAME = '_3JY3BA25 _2LImwTb0'
 PAGE_PRODUCT_NAME='_3_gf3f0b'
 FILE_PASS = "C:\\Projects_Learn\\Parcer_git\\parcer_flowers\\Dataset"
 FILE_PASS_PIC = "C:\\Projects_Learn\\Parcer_git\\parcer_flowers\\DatasetPic"
+CLASSIFICATOR_MODEL_PASS = "C:\\Projects_Learn\\Parcer_git\\parcer_flowers\\model_flowers_classificator.pth"

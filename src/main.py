@@ -1,5 +1,6 @@
+import logging
 from parcer.parcer import Parcer
-from parcer.services import init_db_connection
+from parcer.services import init_db_connection, init_logger
 
 # def object_detection_on_an_image():
 #     exec_path = os.getcwd()
@@ -20,6 +21,8 @@ from parcer.services import init_db_connection
 # )
 
 def main():
+    init_logger()
+    logging.info('Запуск системы..')
     collection = init_db_connection()
     parcer = Parcer()
     parcer.run(collection)

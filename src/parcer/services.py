@@ -1,5 +1,5 @@
 import os
-import re
+import logging
 import requests
 from dotenv import load_dotenv
 
@@ -18,9 +18,9 @@ def download_pics(link):
         response.raise_for_status()  # Проверка наличия ошибок HTTP
         image_code = response.content
     except requests.exceptions.RequestException as e:
-        print(f"Произошла ошибка при запросе изображения: {str(e)}")
+        logging.error(f"Произошла ошибка при запросе изображения: {str(e)}")
     except Exception as e:
-        print(f"Произошла неизвестная ошибка: {str(e)}")
+        logging.error(f"Произошла неизвестная ошибка: {str(e)}")
     return image_code
 
 def init_db_connection():
@@ -31,10 +31,11 @@ def init_db_connection():
     return collection
 
 def choose_driver():
-    try:
-        driver_variable = os.getenv('DRIVER') 
-    except KeyError:
-        print("Ошибка: Переменная DRIVER не установлена в переменных окружения.")
+
+    driver_variable = os.getenv('DRIVER') 
+
+    if driver_variable is None:
+        raise KeyError("Ошибка: Переменная DRIVER не установлена в переменных окружения.")   
 
     if driver_variable == 'Edge':
         service = ServiceEdge()
@@ -43,7 +44,25 @@ def choose_driver():
         service = ServiceChrome(executable_path=DRIVER_PASS_CHROME)
         driver = webdriver.Chrome(service=service)
     else:
-        raise KeyError("В переменных окружения установлен неопознанный драйвер," 
+        raise KeyError("В переменных окружения установлен неопознанный драйвер, " 
                        "пожалуйста используйте 'Edge' или 'Chrome'")
 
     return driver
+
+def init_logger():
+    # Создаем объект логгера
+    logger = logging.getLogger()
+    # Устанавливаем уровень логирования (например, DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    logger.setLevel(logging.DEBUG)
+    # Создаем объект для записи логов в файл
+    file_handler = logging.FileHandler("my_log.log", mode='w', encoding='utf-8')
+    # Устанавливаем уровень логирования для файла
+    file_handler.setLevel(logging.DEBUG)
+    # Создаем форматтер для логов
+    formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+    # Привязываем форматтер к обработчику
+    file_handler.setFormatter(formatter)
+    # Добавляем обработчик к логгеру
+    logger.addHandler(file_handler)
+    logging.getLogger('selenium').setLevel(logging.WARNING)
+    return logger

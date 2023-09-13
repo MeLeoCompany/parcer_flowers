@@ -1,5 +1,6 @@
 import re
 import time
+import logging
 from dataclasses import dataclass
 from typing import List, Optional
 
@@ -8,7 +9,8 @@ from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 
-from .services import choose_driver, download_pics, init_db_connection
+from .classificator import varify_pics
+from .services import choose_driver, download_pics
 from .consts import (BLOCK_NAME, BLOCK_NAME_SCROLE,
                      LINK_FORM, PAGE_FORM, TITLE_NAME, 
                      PAGE_NUMBER_NAME, PAGE_PRODUCT_NAME)
@@ -22,8 +24,19 @@ class DataStracture():
     article: Optional[str] = None
     pic_code: Optional[str] = None
 
-    def verify_data(self):
-        pass
+    def verify_data(self) -> bool:
+        confirm = True
+        attributes = self.__annotations__.keys()
+        all_attributes_not_none = all(getattr(self, attr) is not None for attr in attributes)
+        is_flowers_on_picture = varify_pics(self.pic_code)
+        if all_attributes_not_none is False:
+            logging.warning(f'Блок с артиклом {self.article} удален по причине недостатка данных')
+            confirm = False
+        elif is_flowers_on_picture is False:
+            logging.info(f'На изображении с артиклом {self.article} изображены не цветы, '
+                         'поэтому они удалены')
+            confirm = False
+        return confirm
 
 class Parcer():
 
@@ -37,14 +50,14 @@ class Parcer():
         self.link: str = LINK_FORM + PAGE_FORM + '1'
         self.collect_data: List[DataStracture]= []
         self.page_number: int = 1
-    
+
     def link_encriment(self):
         self.page_number += 1 
         self.link += str(self.page_number)
 
     def find_max_pages(self):
         if hasattr(self, 'max_page_number'):
-            print(f"Максимальное число уже найдено: {self.max_page_number}")
+            logging.warning(f"Максимальное число уже найдено: {self.max_page_number}")
             return None
         self.get_page()
         page_text = self.driver.page_source 
@@ -62,7 +75,7 @@ class Parcer():
             self.driver.get(url=self.link)
         except WebDriverException as e:
         # Обработка ошибок, которые могли возникнуть при загрузке страницы
-            print(f"Произошла ошибка при загрузке страницы: {e}")
+            logging.error(f"Произошла ошибка при загрузке страницы: {e}")
     
     def run(self, collection):
         self.find_max_pages()
@@ -86,8 +99,11 @@ class Parcer():
                 collect_block.product_page_url = page_product_url
                 collect_block.article = re.search(r'\b(\d+)\b', page_product_url).group(1)
                 collect_block.pic_code = download_pics(collect_block.source_image_url)
-                collect_block.verify_data()
-                self.collect_data.append(collect_block)
+                confirm = collect_block.verify_data()
+                if confirm:
+                    self.collect_data.append(collect_block)
+                else:
+                    continue
             self.link_encriment()
         self.close()
 
