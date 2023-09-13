@@ -13,14 +13,26 @@ from .consts import  DRIVER_PASS_CHROME
 load_dotenv()
 
 def download_pics(link):
-    try:
-        response = requests.get(link)
-        response.raise_for_status()  # Проверка наличия ошибок HTTP
-        image_code = response.content
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Произошла ошибка при запросе изображения: {str(e)}")
-    except Exception as e:
-        logging.error(f"Произошла неизвестная ошибка: {str(e)}")
+    max_attempts = 5
+    success = False
+    image_code = None
+    for _ in range(max_attempts):
+        try:
+            response = requests.get(link)
+            response.raise_for_status()  # Проверка наличия ошибок HTTP
+            image_code = response.content
+            if response.status_code == 200:
+                success = True
+                break
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Произошла ошибка при запросе изображения: {str(e)}")
+        except Exception as e:
+            logging.error(f"Произошла неизвестная ошибка: {str(e)}")
+
+    if not success:
+        logging.error(f'Не удалось выполнить запрос к {link} после {max_attempts} попыток.')
+        raise Exception(f'Не удалось выполнить запрос к {link} после {max_attempts} попыток.')
+
     return image_code
 
 def init_db_connection():

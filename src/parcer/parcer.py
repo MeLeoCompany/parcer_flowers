@@ -28,14 +28,16 @@ class DataStracture():
         confirm = True
         attributes = self.__annotations__.keys()
         all_attributes_not_none = all(getattr(self, attr) is not None for attr in attributes)
-        is_flowers_on_picture = varify_pics(self.pic_code)
         if all_attributes_not_none is False:
             logging.warning(f'Блок с артиклом {self.article} удален по причине недостатка данных')
             confirm = False
-        elif is_flowers_on_picture is False:
-            logging.info(f'На изображении с артиклом {self.article} изображены не цветы, '
+        is_flowers_on_picture = varify_pics(self.pic_code)
+        if is_flowers_on_picture is False:
+            logging.warning(f'На изображении с артиклом {self.article} изображены не цветы, '
                          'поэтому они удалены')
             confirm = False
+        else:
+            logging.info(f'Изображение с артиклом {self.article} добавлено')
         return confirm
 
 class Parcer():
