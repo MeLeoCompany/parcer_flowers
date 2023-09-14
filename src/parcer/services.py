@@ -1,4 +1,5 @@
 import os
+import time
 import logging
 import requests
 from dotenv import load_dotenv
@@ -13,17 +14,18 @@ from .consts import  DRIVER_PASS_CHROME
 load_dotenv()
 
 def download_pics(link):
-    max_attempts = 5
+    max_attempts = 30
     success = False
     image_code = None
     for _ in range(max_attempts):
         try:
-            response = requests.get(link)
+            response = requests.get(link, timeout=5)
             response.raise_for_status()  # Проверка наличия ошибок HTTP
             image_code = response.content
             if response.status_code == 200:
                 success = True
                 break
+            time.sleep(1)
         except requests.exceptions.RequestException as e:
             logging.error(f"Произошла ошибка при запросе изображения: {str(e)}")
         except Exception as e:
@@ -40,7 +42,7 @@ def init_db_connection():
     db = client.get_database("pics_base")
     # Выберите базу данных
     collection = db['pics_data']
-    collection.delete_many({})
+    # collection.delete_many({})
     return collection
 
 def choose_driver():
