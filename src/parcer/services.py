@@ -40,6 +40,7 @@ def init_db_connection():
     db = client.get_database("pics_base")
     # Выберите базу данных
     collection = db['pics_data']
+    collection.delete_many({})
     return collection
 
 def choose_driver():

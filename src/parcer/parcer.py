@@ -1,7 +1,9 @@
+import base64
 import re
 import time
 import logging
-from dataclasses import dataclass
+import json
+from dataclasses import dataclass, asdict
 from typing import List, Optional
 
 from bs4 import BeautifulSoup
@@ -42,6 +44,8 @@ class DataStracture():
 
 class Parcer():
 
+    base_link: str = LINK_FORM + PAGE_FORM
+
     def __new__(cls):
         if not hasattr(cls, 'instance'):
             cls.instance = super(Parcer, cls).__new__(cls)
@@ -49,13 +53,13 @@ class Parcer():
 
     def __init__(self):
         self.driver = choose_driver()
-        self.link: str = LINK_FORM + PAGE_FORM + '1'
+        self.link: str = LINK_FORM + PAGE_FORM
         self.collect_data: List[DataStracture]= []
         self.page_number: int = 1
 
     def link_encriment(self):
         self.page_number += 1 
-        self.link += str(self.page_number)
+        self.link = self.base_link + str(self.page_number)
 
     def find_max_pages(self):
         if hasattr(self, 'max_page_number'):
@@ -103,9 +107,14 @@ class Parcer():
                 collect_block.pic_code = download_pics(collect_block.source_image_url)
                 confirm = collect_block.verify_data()
                 if confirm:
+                    collect_block.pic_code = base64.b64encode(collect_block.pic_code).decode('utf-8')
                     self.collect_data.append(collect_block)
                 else:
                     continue
+            dict_list = [asdict(block) for block in self.collect_data]
+            collection.insert_many(dict_list)
+            logging.info(f'Данные со страницы {self.page_number} собраны и добавлены в базу данных')
+            self.collect_data = []
             self.link_encriment()
         self.close()
 
