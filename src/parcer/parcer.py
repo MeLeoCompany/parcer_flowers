@@ -111,10 +111,13 @@ class Parcer():
                     self.collect_data.append(collect_block)
                 else:
                     continue
-            dict_list = [asdict(block) for block in self.collect_data]
-            collection.insert_many(dict_list)
-            logging.info(f'Данные со страницы {self.page_number} собраны и добавлены в базу данных')
-            self.collect_data = []
+            if self.collect_data:
+                dict_list = [asdict(block) for block in self.collect_data]
+                collection.insert_many(dict_list)
+                logging.info(f'Данные со страницы {self.page_number} собраны и добавлены в базу данных')
+                self.collect_data = []
+            else:
+                logging.info(f'Нужных данных на странице {self.page_number} не оказалось')
             self.link_encriment()
         self.close()
 
