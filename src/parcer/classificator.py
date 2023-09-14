@@ -21,8 +21,9 @@ def varify_pics(image):
     ])
     image_buffer = io.BytesIO(image)
     image = Image.open(image_buffer)
+    image = image.convert('RGB') 
     input_image = transform(image).unsqueeze(0)
-    
+
     with torch.no_grad():
         output = model(input_image)
     
