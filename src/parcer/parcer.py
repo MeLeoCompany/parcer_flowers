@@ -1,52 +1,27 @@
 import base64
+import random
 import re
 import time
 import logging
 import json
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass, asdict, field
 from typing import List, Optional
 
 from bs4 import BeautifulSoup
 from selenium.common.exceptions import WebDriverException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchElementException
 
-from .classificator import varify_pics
+from .data_strutures import ContentData, DataStracture, FlowerInfo
+
 from .services import choose_driver, download_pics
-from .consts import (BLOCK_NAME, BLOCK_NAME_SCROLE,
+from .consts import (BLOCK_NAME, BLOCK_NAME_SCROLE, BUTTON_SHOW_ALL,
                      LINK_FORM, PAGE_FORM, TITLE_NAME, 
-                     PAGE_NUMBER_NAME, PAGE_PRODUCT_NAME)
+                     PAGE_NUMBER_NAME, PAGE_PRODUCT_NAME,
+                     BUKET_DISCRIPTION_NAME, FLOWER_DISCRIPTION,
+                     FLOWER_DISCRIPTION_NUMBER)
 
-@dataclass
-class DataStracture():
-    
-    source_image_url: Optional[str] = None 
-    product_page_url: Optional[str] = None
-    title: Optional[str] = None
-    article: Optional[str] = None
-    pic_code: Optional[str] = None
-
-    def verify_data(self) -> bool:
-        confirm = True
-        if self.pic_code == b'':
-            confirm = False
-            logging.warning(f'Блок с артиклом {self.article} удален по причине отсутствия фотографии')
-            return confirm
-        attributes = self.__annotations__.keys()
-        all_attributes_not_none = all(getattr(self, attr) is not None for attr in attributes)
-        if all_attributes_not_none is False:
-            logging.warning(f'Блок с артиклом {self.article} удален по причине недостатка данных')
-            confirm = False
-            return confirm
-        is_flowers_on_picture = varify_pics(self.pic_code)
-        if is_flowers_on_picture is False:
-            logging.warning(f'На изображении с артиклом {self.article} изображены не цветы, '
-                         'поэтому они удалены')
-            confirm = False
-            return confirm
-        else:
-            logging.info(f'Изображение с артиклом {self.article} добавлено')
-        return confirm
 
 class Parcer():
 
@@ -71,7 +46,7 @@ class Parcer():
         if hasattr(self, 'max_page_number'):
             logging.warning(f"Максимальное число уже найдено: {self.max_page_number}")
             return None
-        self.get_page()
+        self.get_page(self.link)
         page_text = self.driver.page_source 
         soup = BeautifulSoup(page_text, "html.parser")
         page_number_blocks = soup.find_all('div', class_ = PAGE_NUMBER_NAME)
@@ -81,18 +56,41 @@ class Parcer():
         self.max_page_number = max(page_numbers_list) + 1
         return self.max_page_number
 
-    def get_page(self):
+    def get_page(self, url):
         try:
         # Загрузите веб-страницу
-            self.driver.get(url=self.link)
+            self.driver.get(url)
         except WebDriverException as e:
         # Обработка ошибок, которые могли возникнуть при загрузке страницы
             logging.error(f"Произошла ошибка при загрузке страницы: {e}")
-    
+
+    def find_content_info(self, collect_block):
+        self.get_page(collect_block.product_page_url)
+        try:
+            button = self.driver.find_element(By.CLASS_NAME, BUTTON_SHOW_ALL)
+            button.click()
+        except NoSuchElementException:
+            logging.info(f'Кнопки развернуть все на странице {collect_block.product_page_url} нет')
+        page_text = self.driver.page_source
+        soup = BeautifulSoup(page_text, "html.parser")
+        blocks = soup.find_all('div', class_ = BUKET_DISCRIPTION_NAME)
+        for block in blocks:
+            description = block.find('span', class_ = FLOWER_DISCRIPTION).text
+            if block.find('span', class_ = FLOWER_DISCRIPTION_NUMBER) is None:
+                numbers_of_flowers = ''
+            else:
+                numbers_of_flowers = block.find('span', class_ = FLOWER_DISCRIPTION_NUMBER).text
+                numbers_of_flowers = re.search(r'\d+', numbers_of_flowers).group()
+                collect_block.content.all_text_data += numbers_of_flowers + ' '
+            collect_block.content.all_text_data += description + ','
+            collect_block.content.flowers.append(FlowerInfo(description, numbers_of_flowers))
+        return collect_block
+
+
     def run(self, collection):
         self.find_max_pages()
         while self.page_number < self.max_page_number:
-            self.get_page()
+            self.get_page(self.link)
             search_boxes = self.driver.find_elements(By.CLASS_NAME, BLOCK_NAME_SCROLE)
             actions = ActionChains(self.driver)
             for search_box in search_boxes:
@@ -111,7 +109,9 @@ class Parcer():
                 collect_block.product_page_url = page_product_url
                 collect_block.article = re.search(r'\b(\d+)\b', page_product_url).group(1)
                 collect_block.pic_code = download_pics(collect_block.source_image_url)
+                collect_block = self.find_content_info(collect_block)
                 confirm = collect_block.verify_data()
+                time.sleep(random.uniform(0.5, 3.0))
                 if confirm:
                     collect_block.pic_code = base64.b64encode(collect_block.pic_code).decode('utf-8')
                     self.collect_data.append(collect_block)
