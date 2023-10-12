@@ -3,9 +3,9 @@ import random
 import re
 import time
 import logging
-import json
-from dataclasses import dataclass, asdict, field
-from typing import List, Optional
+
+from dataclasses import asdict
+from typing import List
 
 from bs4 import BeautifulSoup
 from selenium.common.exceptions import WebDriverException
@@ -82,7 +82,7 @@ class Parcer():
                 numbers_of_flowers = block.find('span', class_ = FLOWER_DISCRIPTION_NUMBER).text
                 numbers_of_flowers = re.search(r'\d+', numbers_of_flowers).group()
                 collect_block.content.all_text_data += numbers_of_flowers + ' '
-            collect_block.content.all_text_data += description + ','
+            collect_block.content.all_text_data += description + ';' + ' '
             collect_block.content.flowers.append(FlowerInfo(description, numbers_of_flowers))
         return collect_block
 
